@@ -1,3 +1,5 @@
+# 請確保 import 區塊包含 PostbackEvent
+from linebot.v3.webhooks import MessageEvent, TextMessageContent, PostbackEvent
 import os
 import json
 from flask import Flask, request, abort
