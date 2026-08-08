@@ -1,9 +1,10 @@
 import os
 import json
-from openai import OpenAI
+from google import genai
+from google.genai import types
 
-# 初始 OpenAI 客戶端，會自動讀取環境變數 OPENAI_API_KEY
-client = OpenAI()
+# 初始化 Gemini 客戶端，會自動讀取你設定的 GEMINI_API_KEY 環境變數
+client = genai.Client()
 
 def analyze_payload_with_ai(text):
     prompt = f"""
@@ -19,11 +20,14 @@ def analyze_payload_with_ai(text):
     使用者訊息：「{text}」
     """
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        response_format={"type": "json_object"}  # 強制輸出 JSON
+    # 使用免費又快速的 gemini-2.5-flash 模型
+    response = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json", # 強制要求回傳 JSON
+        ),
     )
 
-    # 將 AI 回傳的字串轉換為 Python 字典 (Dict)
-    return json.loads(response.choices[0].message.content)
+    # 將 Gemini 回傳的 JSON 字串轉換為 Python 字典 (Dict)
+    return json.loads(response.text)
