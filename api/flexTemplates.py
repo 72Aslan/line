@@ -43,3 +43,62 @@ def generate_flex_message(data):
             ]
         }
     }
+    def generate_success_card(date, location, time, limit):
+    return {
+        "type": "bubble",
+        "body": {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+                {"type": "text", "text": "🎉 開團成功", "weight": "bold", "size": "xl", "color": "#1DB954"},
+                {"type": "text", "text": f"{date} {location}羽球團", "weight": "bold", "size": "md", "margin": "md"},
+                {"type": "text", "text": time, "size": "sm", "color": "#666666"},
+                {"type": "separator", "margin": "lg"},
+                {
+                    "type": "box",
+                    "layout": "horizontal",
+                    "margin": "lg",
+                    "contents": [
+                        {"type": "text", "text": "目前報名", "color": "#888888"},
+                        {"type": "text", "text": f"0/{limit} 人", "align": "end", "weight": "bold"}
+                    ]
+                }
+            ]
+        },
+        "footer": {
+            "type": "box",
+            "layout": "vertical",
+            "spacing": "sm",
+            "contents": [
+                {
+                    "type": "button",
+                    "style": "primary",
+                    "color": "#00B900",
+                    "action": {
+                        "type": "uri",
+                        "label": "分享球局",
+                        # 這裡之後會串接 LIFF 分享選擇器，目前先以分享示範連結替代
+                        "uri": "https://line.me"
+                    }
+                },
+                {
+                    "type": "button",
+                    "style": "secondary",
+                    "action": {
+                        "type": "message",
+                        "label": "管理場次",
+                        "text": "管理場次"
+                    }
+                },
+                {
+                    "type": "button",
+                    "style": "link",
+                    "action": {
+                        "type": "message",
+                        "label": "複製活動連結",
+                        "text": "複製活動連結"
+                    }
+                }
+            ]
+        }
+    }
