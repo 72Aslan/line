@@ -47,6 +47,26 @@ def webhook():
 
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
+    # ------------------ 新增：處理 Postback 按鈕事件 ------------------
+@handler.add(PostbackEvent)
+def handle_postback(event):
+    postback_data = event.postback.data
+    print(f"收到 Postback 資料: {postback_data}")
+
+    # 當點擊「確認開團」按鈕時
+    if postback_data.startswith('action=confirm'):
+        with ApiClient(configuration) as api_client:
+            messaging_api = MessagingApi(api_client)
+            
+            # 回覆開團成功訊息 (根據規格書：產生 event_id、變更狀態為開放報名)
+            messaging_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[
+                        TextMessage(text="🎉 開團成功！\n8/15 中山羽球團\n19:00-21:00\n目前報名：0/6\n\n快將此卡片分享至群組吧！")
+                    ]
+                )
+            )
     user_text = event.message.text
 
     if user_text.startswith('開團'):
