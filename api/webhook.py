@@ -119,17 +119,25 @@ def handle_postback(event):
     postback_data = event.postback.data
     print(f"收到 Postback 資料: {postback_data}")
 
-    # 當點擊 Flex 卡片上的「確認開團」按鈕時
     if postback_data.startswith('action=confirm'):
+        # 產生成功卡片的 Flex 內容 (暫以預設資料示範，後續串接資料庫)
+        success_contents = generate_success_card(
+            date="8/15",
+            location="中山",
+            time="19:00-21:00",
+            limit="6"
+        )
+        
+        flex_message = FlexMessage(
+            alt_text="🎉 開團成功！",
+            contents=FlexContainer.from_dict(success_contents)
+        )
+
         with ApiClient(configuration) as api_client:
             messaging_api = MessagingApi(api_client)
-            
-            # 回覆開團成功（將場次狀態改為開放報名）
             messaging_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[
-                        TextMessage(text="🎉 開團成功！\n8/15 中山羽球團\n19:00-21:00\n目前報名：0/6\n\n快將此卡片分享至群組吧！")
-                    ]
+                    messages=[flex_message]
                 )
             )
