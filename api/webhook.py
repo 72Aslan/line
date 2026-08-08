@@ -30,9 +30,14 @@ handler = WebhookHandler(channel_secret)
 current_signup_count = 0
 MAX_LIMIT = 6
 
-@app.route("/", methods=['POST'])
-@app.route("/api/webhook", methods=['POST'])
+@app.route("/", methods=['GET', 'POST'])
+@app.route("/api/webhook", methods=['GET', 'POST'])
 def webhook():
+    # 如果是網頁或測試瀏覽 (GET)
+    if request.method == 'GET':
+        return 'LINE Bot Server Ready!', 200
+
+    # 如果是 LINE 傳來的資料 (POST)
     signature = request.headers.get('X-Line-Signature')
     body = request.get_data(as_text=True)
 
@@ -42,7 +47,7 @@ def webhook():
         abort(400)
     except Exception as e:
         print(f"Webhook Handler Error: {e}")
-        return 'OK', 200 # 回傳 200 避免 LINE 持續重發造成卡死
+        return 'OK', 200
 
     return 'OK'
 
