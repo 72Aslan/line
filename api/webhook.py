@@ -75,6 +75,7 @@ def handle_message(event):
         return
 
     # 2. 自然語言開團
+    # 2. 自然語言開團
     elif user_text.startswith('開團'):
         try:
             match_data = analyze_payload_with_ai(user_text)
@@ -89,6 +90,28 @@ def handle_message(event):
                         )
                     )
                     return
+
+                # ------ 修正這裡：確保只傳入字典資料，並正確轉成 FlexMessage ------
+                flex_contents = generate_flex_message(match_data)
+                flex_message = FlexMessage(
+                    alt_text="請確認開團資訊",
+                    contents=FlexContainer.from_dict(flex_contents)
+                )
+
+                messaging_api.reply_message(
+                    ReplyMessageRequest(reply_token=event.reply_token, messages=[flex_message])
+                )
+        except Exception as e:
+            print(f"AI Error: {e}")
+            with ApiClient(configuration) as api_client:
+                messaging_api = MessagingApi(api_client)
+                messaging_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token, 
+                        messages=[TextMessage(text="開團格式解析失敗，請再試一次！")]
+                    )
+                )
+        return
 
                 flex_card = generate_flex_message(match_data)
                 messaging_api.reply_message(
