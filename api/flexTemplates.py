@@ -43,7 +43,9 @@ def generate_flex_message(data):
             ]
         }
     }
-    def generate_success_card(date, location, time, limit):
+
+
+def generate_success_card(date, location, time, limit):
     return {
         "type": "bubble",
         "body": {
@@ -77,7 +79,6 @@ def generate_flex_message(data):
                     "action": {
                         "type": "uri",
                         "label": "分享球局",
-                        # 這裡之後會串接 LIFF 分享選擇器，目前先以分享示範連結替代
                         "uri": "https://line.me"
                     }
                 },
