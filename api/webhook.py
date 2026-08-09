@@ -179,11 +179,15 @@ if handler:
     @handler.add(PostbackEvent)
     def handle_postback(event):
         postback_data = event.postback.data
-
+        
         # 處理確認開團
+        
         if postback_data.startswith('action=confirm'):
+            # 撈取最新人數傳入卡片
+            latest_count = get_event_signup_count()
+            
             success_contents = generate_success_card(
-                date="8/15", location="中山", time="19:00-21:00", limit=str(MAX_LIMIT)
+                date="8/15", location="中山", time="19:00-21:00", current=latest_count, limit=str(MAX_LIMIT)
             )
             flex_message = FlexMessage(
                 alt_text="🎉 開團成功！", contents=FlexContainer.from_dict(success_contents)
