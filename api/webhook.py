@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import psycopg2
 from flask import Flask, request, abort
 
 # 確保當前目錄與上層目錄都在 sys.path 中，防範 Vercel 路徑迷路
@@ -24,8 +25,7 @@ try:
 except ModuleNotFoundError:
     from flexTemplates import generate_flex_message, generate_success_card, generate_join_card
 
-# aiService 會載入 google-genai SDK，屬於較重的依賴，延後到真的需要 AI 解析時才 import，
-# 避免拖慢每一次 webhook 請求（包含 LINE 的 Verify 測試、以及不需要 AI 的指令）的回應速度
+# aiService 會載入 google-genai SDK，延後到真的需要 AI 解析時才 import
 def _get_analyze_payload_with_ai():
     try:
         from api.aiService import analyze_payload_with_ai
@@ -35,16 +35,51 @@ def _get_analyze_payload_with_ai():
 
 app = Flask(__name__)
 
-# 安全讀取環境變數 (避免空值導致程式崩潰)
+# 安全讀取環境變數 (包含 Supabase 的連線網址)
 channel_secret = os.getenv('LINE_CHANNEL_SECRET', '')
 channel_access_token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', '')
+postgres_url = os.getenv('POSTGRES_URL', '')
 
 configuration = Configuration(access_token=channel_access_token)
 handler = WebhookHandler(channel_secret) if channel_secret else None
 
-current_signup_count = 0
 MAX_LIMIT = 6
+EVENT_KEY = 'badminton_815'
 
+# ------------------ Supabase 資料庫操作函數 ------------------
+def get_db_connection():
+    return psycopg2.connect(postgres_url)
+
+def get_event_signup_count():
+    """從 Supabase 讀取最新報名人數"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT current_count FROM events WHERE event_key = %s;", (EVENT_KEY,))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        return row[0] if row else 0
+    except Exception as e:
+        print(f"Database Get Error: {e}")
+        return 0
+
+def increment_signup_count():
+    """在 Supabase 將報名人數 +1 並回傳最新人數"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("UPDATE events SET current_count = current_count + 1 WHERE event_key = %s RETURNING current_count;", (EVENT_KEY,))
+        new_count = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+        return new_count
+    except Exception as e:
+        print(f"Database Increment Error: {e}")
+        return get_event_signup_count() + 1
+
+# ------------------ Webhook 核心 ------------------
 @app.route("/", methods=['GET', 'POST'])
 @app.route("/api/webhook", methods=['GET', 'POST'])
 def webhook():
@@ -73,8 +108,8 @@ def webhook():
 if handler:
     @handler.add(MessageEvent, message=TextMessageContent)
     def handle_message(event):
-        global current_signup_count
         user_text = event.message.text.strip()
+        current_signup_count = get_event_signup_count()
 
         # 查球局 / 複製連結
         if user_text in ["查球局", "複製活動連結", "查看場次資訊"]:
@@ -141,7 +176,6 @@ if handler:
     # ------------------ 按鈕處理區塊 ------------------
     @handler.add(PostbackEvent)
     def handle_postback(event):
-        global current_signup_count
         postback_data = event.postback.data
 
         if postback_data.startswith('action=confirm'):
@@ -157,11 +191,13 @@ if handler:
                 )
 
         elif postback_data == 'action=join_event':
-            if current_signup_count < MAX_LIMIT:
-                current_signup_count += 1
-                msg = f"✅ 報名成功！\n目前順位：第 {current_signup_count} 位\n場次人數：{current_signup_count}/{MAX_LIMIT}"
+            current_count = get_event_signup_count()
+            if current_count < MAX_LIMIT:
+                new_count = increment_signup_count()
+                msg = f"✅ 報名成功！\n目前順位：第 {new_count} 位\n場次人數：{new_count}/{MAX_LIMIT}"
             else:
-                wait_rank = current_signup_count - MAX_LIMIT + 1
+                new_count = increment_signup_count()
+                wait_rank = new_count - MAX_LIMIT
                 msg = f"⚠️ 目前正式名額已滿！\n已為您安排候補順位：第 {wait_rank} 位"
 
             with ApiClient(configuration) as api_client:
