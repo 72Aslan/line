@@ -103,7 +103,9 @@ def generate_success_card(date, location, time, limit):
             ]
         }
     }
-    def generate_join_card(date, location, time, level, fee, current, limit):
+
+
+def generate_join_card(date, location, time, level, fee, current, limit):
     return {
         "type": "bubble",
         "body": {
