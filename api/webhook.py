@@ -109,13 +109,15 @@ if handler:
     @handler.add(MessageEvent, message=TextMessageContent)
     def handle_message(event):
         user_text = event.message.text.strip()
-        current_signup_count = get_event_signup_count()
 
-        # 查球局 / 複製連結
+        # 查球局 / 複製連結 / 查看場次資訊 (文字觸發)
         if user_text in ["查球局", "複製活動連結", "查看場次資訊"]:
+            # 即時從資料庫獲取最新人數，確保卡片數據不卡零
+            latest_count = get_event_signup_count()
+            
             join_contents = generate_join_card(
                 date="8/15", location="中山", time="19:00-21:00",
-                level="初中階", fee=250, current=current_signup_count, limit=MAX_LIMIT
+                level="初中階", fee=250, current=latest_count, limit=MAX_LIMIT
             )
             flex_message = FlexMessage(
                 alt_text="8/15 中山羽球團 報名中！",
@@ -178,6 +180,7 @@ if handler:
     def handle_postback(event):
         postback_data = event.postback.data
 
+        # 處理確認開團
         if postback_data.startswith('action=confirm'):
             success_contents = generate_success_card(
                 date="8/15", location="中山", time="19:00-21:00", limit=str(MAX_LIMIT)
@@ -190,6 +193,7 @@ if handler:
                     ReplyMessageRequest(reply_token=event.reply_token, messages=[flex_message])
                 )
 
+        # 處理點擊卡片中的 +1 我要報名 按鈕
         elif postback_data == 'action=join_event':
             current_count = get_event_signup_count()
             if current_count < MAX_LIMIT:
