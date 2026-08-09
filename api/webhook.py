@@ -3,29 +3,28 @@ import sys
 import json
 from flask import Flask, request, abort
 
-# ------ 關鍵修正：強制讓 Python 把當前目錄和根目錄納入搜尋範圍 ------
+# 確保當前目錄與上層目錄都在 sys.path 中，防範 Vercel 路徑迷路
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
-if current_dir not in sys.path:
-    sys.path.append(current_dir)
-if parent_dir not in sys.path:
-    sys.path.append(parent_dir)
+for d in [current_dir, parent_dir]:
+    if d not in sys.path:
+        sys.path.insert(0, d)
 
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
-    Configuration,
-    ApiClient,
-    MessagingApi,
-    ReplyMessageRequest,
-    TextMessage,
-    FlexMessage,
-    FlexContainer
+    Configuration, ApiClient, MessagingApi, ReplyMessageRequest,
+    TextMessage, FlexMessage, FlexContainer
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent, PostbackEvent
 
-from aiService import analyze_payload_with_ai
-from flexTemplates import generate_flex_message, generate_success_card, generate_join_card
+# 雙重防範引入：不管 Vercel 從哪個目錄啟動，都能順利抓到 aiService 與 flexTemplates
+try:
+    from api.aiService import analyze_payload_with_ai
+    from api.flexTemplates import generate_flex_message, generate_success_card, generate_join_card
+except ModuleNotFoundError:
+    from aiService import analyze_payload_with_ai
+    from flexTemplates import generate_flex_message, generate_success_card, generate_join_card
 
 app = Flask(__name__)
 
