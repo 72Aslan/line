@@ -24,11 +24,9 @@ from linebot.v3.messaging import (
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent, PostbackEvent
 
-# 改用絕對路徑引入，配合上面的 sys.path 修正
-from api.aiService import analyze_payload_with_ai
-from api.flexTemplates import generate_flex_message, generate_success_card, generate_join_card
+from aiService import analyze_payload_with_ai
+from flexTemplates import generate_flex_message, generate_success_card, generate_join_card
 
-# 建立 Flask 應用程式實例
 app = Flask(__name__)
 
 # 安全讀取環境變數 (避免空值導致程式崩潰)
