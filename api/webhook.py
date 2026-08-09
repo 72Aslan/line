@@ -18,13 +18,20 @@ from linebot.v3.messaging import (
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent, PostbackEvent
 
-# 雙重防範引入：不管 Vercel 從哪個目錄啟動，都能順利抓到 aiService 與 flexTemplates
+# flexTemplates 很輕量，直接載入沒關係
 try:
-    from api.aiService import analyze_payload_with_ai
     from api.flexTemplates import generate_flex_message, generate_success_card, generate_join_card
 except ModuleNotFoundError:
-    from aiService import analyze_payload_with_ai
     from flexTemplates import generate_flex_message, generate_success_card, generate_join_card
+
+# aiService 會載入 google-genai SDK，屬於較重的依賴，延後到真的需要 AI 解析時才 import，
+# 避免拖慢每一次 webhook 請求（包含 LINE 的 Verify 測試、以及不需要 AI 的指令）的回應速度
+def _get_analyze_payload_with_ai():
+    try:
+        from api.aiService import analyze_payload_with_ai
+    except ModuleNotFoundError:
+        from aiService import analyze_payload_with_ai
+    return analyze_payload_with_ai
 
 app = Flask(__name__)
 
@@ -88,6 +95,7 @@ if handler:
         # 自然語言開團
         elif user_text.startswith('開團'):
             try:
+                analyze_payload_with_ai = _get_analyze_payload_with_ai()
                 match_data = analyze_payload_with_ai(user_text)
                 with ApiClient(configuration) as api_client:
                     messaging_api = MessagingApi(api_client)
