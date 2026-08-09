@@ -1,6 +1,16 @@
 import os
+import sys
 import json
-from flask import Flask, request
+from flask import Flask, request, abort
+
+# ------ 關鍵修正：強制讓 Python 把當前目錄和根目錄納入搜尋範圍 ------
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
@@ -13,9 +23,12 @@ from linebot.v3.messaging import (
     FlexContainer
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent, PostbackEvent
+
+# 改用絕對路徑引入，配合上面的 sys.path 修正
 from api.aiService import analyze_payload_with_ai
 from api.flexTemplates import generate_flex_message, generate_success_card, generate_join_card
 
+# 建立 Flask 應用程式實例
 app = Flask(__name__)
 
 # 安全讀取環境變數 (避免空值導致程式崩潰)
