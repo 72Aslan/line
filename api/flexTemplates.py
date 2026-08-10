@@ -1,4 +1,4 @@
-def generate_flex_message(data):
+def generate_flex_message(data, event_id):
     return {
         "type": "bubble",
         "body": {
@@ -33,7 +33,7 @@ def generate_flex_message(data):
                     "type": "button",
                     "style": "primary",
                     "color": "#1DB954",
-                    "action": {"type": "postback", "label": "確認開團", "data": "action=confirm"}
+                    "action": {"type": "postback", "label": "確認開團", "data": f"action=confirm&event_id={event_id}"}
                 },
                 {
                     "type": "button",
@@ -45,19 +45,7 @@ def generate_flex_message(data):
     }
 
 
-def generate_success_card(date, location, time, current, limit):
-    """開團成功/更新狀態的卡片（修正：新增 current 參數，動態計算名額）"""
-    limit_int = int(limit)
-    current_int = int(current)
-    remain = limit_int - current_int
-    
-    if remain > 0:
-        status_text = f"{current_int}/{limit_int} 人 (尚缺{remain}人)"
-        status_color = "#1DB954"
-    else:
-        status_text = f"{current_int}/{limit_int} 人 (已額滿)"
-        status_color = "#FF4D4F"
-
+def generate_success_card(date, location, time, limit):
     return {
         "type": "bubble",
         "body": {
@@ -74,7 +62,7 @@ def generate_success_card(date, location, time, current, limit):
                     "margin": "lg",
                     "contents": [
                         {"type": "text", "text": "目前報名", "color": "#888888"},
-                        {"type": "text", "text": status_text, "align": "end", "weight": "bold", "color": status_color}
+                        {"type": "text", "text": f"0/{limit} 人", "align": "end", "weight": "bold"}
                     ]
                 }
             ]
@@ -117,19 +105,8 @@ def generate_success_card(date, location, time, current, limit):
     }
 
 
-def generate_join_card(date, location, time, level, fee, current, limit):
-    """羽球團報名卡片（修正：新增防呆名額狀態文字）"""
-    limit_int = int(limit)
-    current_int = int(current)
-    remain = limit_int - current_int
-    
-    if remain > 0:
-        status_text = f"{current_int}/{limit_int}，尚缺{remain}人"
-        status_color = "#1DB954"
-    else:
-        status_text = f"{current_int}/{limit_int}，已額滿"
-        status_color = "#FF4D4F"
-
+def generate_join_card(event_id, date, location, time, level, fee, current, limit):
+    remaining = max(limit - current, 0)
     return {
         "type": "bubble",
         "body": {
@@ -147,10 +124,7 @@ def generate_join_card(date, location, time, level, fee, current, limit):
                         {"type": "box", "layout": "horizontal", "contents": [{"type": "text", "text": "時間", "color": "#888888"}, {"type": "text", "text": time, "align": "end"}]},
                         {"type": "box", "layout": "horizontal", "contents": [{"type": "text", "text": "程度", "color": "#888888"}, {"type": "text", "text": level, "align": "end"}]},
                         {"type": "box", "layout": "horizontal", "contents": [{"type": "text", "text": "費用", "color": "#888888"}, {"type": "text", "text": f"{fee}元", "align": "end"}]},
-                        {"type": "box", "layout": "horizontal", "contents": [
-                            {"type": "text", "text": "名額", "color": "#888888", "flex": 1}, 
-                            {"type": "text", "text": status_text, "align": "end", "color": status_color, "weight": "bold", "flex": 3}
-                        ]}
+                        {"type": "box", "layout": "horizontal", "contents": [{"type": "text", "text": "名額", "color": "#888888"}, {"type": "text", "text": (f"{current}/{limit}，尚缺{remaining}人" if remaining > 0 else f"{current}/{limit}，已額滿（可候補）"), "align": "end", "color": "#1DB954", "weight": "bold"}]}
                     ]
                 }
             ]
@@ -166,8 +140,8 @@ def generate_join_card(date, location, time, level, fee, current, limit):
                     "color": "#1DB954",
                     "action": {
                         "type": "postback",
-                        "label": "+1我要報名",
-                        "data": "action=join_event"
+                        "label": "+1我要報名" if remaining > 0 else "候補我要報名",
+                        "data": f"action=join_event&event_id={event_id}"
                     }
                 },
                 {
