@@ -4,9 +4,8 @@ from google import genai
 from google.genai import types
 
 # 不要在模組最上層就建立 client！
-# 這樣每次 import 這個檔案（包含每一次 webhook 請求、甚至 LINE 的 Verify 測試）
-# 都會觸發 genai.Client() 的憑證探測，若沒設好 GEMINI_API_KEY 或探測過程卡住，
-# 就會拖慢每一次回應，導致超過 LINE 要求的 2 秒回應時限而 timeout。
+# 這樣每次 import 這個檔案（包含每一次 webhook 請求）都會觸發 genai.Client() 的
+# 憑證探測，若沒設好 GEMINI_API_KEY 或探測過程卡住，就會拖慢每一次回應。
 _client = None
 
 
@@ -16,7 +15,6 @@ def _get_client():
         api_key = os.getenv("GEMINI_API_KEY", "")
         if not api_key:
             raise RuntimeError("GEMINI_API_KEY 環境變數未設定，請至 Vercel 專案設定新增。")
-        # 明確傳入 api_key，避免 SDK 嘗試自動探測憑證（ADC 等）而卡住
         _client = genai.Client(api_key=api_key)
     return _client
 
@@ -35,14 +33,12 @@ def analyze_payload_with_ai(text):
     使用者訊息：「{text}」
     """
 
-    # 使用免費又快速的 gemini-2.5-flash 模型
     response = _get_client().models.generate_content(
         model='gemini-2.5-flash',
         contents=prompt,
         config=types.GenerateContentConfig(
-            response_mime_type="application/json",  # 強制要求回傳 JSON
+            response_mime_type="application/json",
         ),
     )
 
-    # 將 Gemini 回傳的 JSON 字串轉換為 Python 字典 (Dict)
     return json.loads(response.text)
